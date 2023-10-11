@@ -16,7 +16,7 @@ bot.on("text", async (ctx) => {
       const result = await createPDF(url);
       ctx.replyWithDocument({ source: result.buffer, filename: result.title });
     } catch (error) {
-      ctx.reply("An error occurred while processing the URL.");
+      ctx.reply("An error occurred while processing the URL. " + JSON.stringify(error));
     }
   } else {
     ctx.reply("Please send a valid URL.");
