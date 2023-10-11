@@ -1,0 +1,21 @@
+# Node.js dependencies
+node_modules/
+
+# Logs and databases
+*.log
+*.sql
+*.sqlite
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# Editor folders
+.vscode/
+.idea/
+
+# dotenv environment variable file
+.env
