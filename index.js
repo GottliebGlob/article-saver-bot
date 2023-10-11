@@ -52,10 +52,9 @@ async function createPDF(url) {
   let browser;
   try {
     console.log("Launching browser...");
-    browser = await puppeteer.launch({
-      headless: false,
-      args: ["--no-sandbox"],
-    });
+   const browser = await puppeteer.launch({
+     args: ["--no-sandbox", "--disable-setuid-sandbox"],
+   });
     console.log("Browser launched.");
 
     const page = await browser.newPage();
