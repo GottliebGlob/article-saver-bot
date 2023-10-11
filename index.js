@@ -47,24 +47,58 @@ async function loadPage(page, url) {
 }
 
 async function createPDF(url) {
-  const browser = await puppeteer.launch();
-  const page = await browser.newPage();
+  console.log("Starting createPDF for URL:", url);
 
-  await page.setViewport({
-    width: 1200,
-    height: 800,
-  });
+  let browser;
+  try {
+    console.log("Launching browser...");
+    browser = await puppeteer.launch();
+    console.log("Browser launched.");
 
-  await loadPage(page, url); 
+    const page = await browser.newPage();
+    console.log("New page opened.");
 
-  const pageTitle = await page.title();
-  await autoScroll(page);
+    await page.setViewport({
+      width: 1200,
+      height: 800,
+    });
+    console.log("Viewport set.");
 
-  const pdfBuffer = await page.pdf({ format: "A4" });
-  await browser.close();
+    console.log("Loading page...");
+    await loadPage(page, url);
+    console.log("Page loaded.");
 
-  const filename = sanitizeFilename(pageTitle);
-  return { buffer: pdfBuffer, title: filename };
+    const pageTitle = await page.title();
+    console.log("Retrieved page title:", pageTitle);
+
+    console.log("Starting auto-scroll...");
+    await autoScroll(page);
+    console.log("Auto-scroll completed.");
+
+    console.log("Generating PDF...");
+    const pdfBuffer = await page.pdf({ format: "A4" });
+    console.log("PDF generated.");
+
+    console.log("Closing browser...");
+    await browser.close();
+    console.log("Browser closed.");
+
+    const filename = sanitizeFilename(pageTitle);
+    console.log("Filename sanitized:", filename);
+
+    return { buffer: pdfBuffer, title: filename };
+  } catch (error) {
+    console.error("Error in createPDF:", error);
+
+    // Close browser in case of an error to prevent lingering instances.
+    if (browser) {
+      console.log("Attempting to close browser due to error...");
+      await browser.close();
+      console.log("Browser closed.");
+    }
+
+    throw error; // Re-throw the error so you can handle it upstream.
+  }
 }
 
 function sanitizeFilename(filename) {
