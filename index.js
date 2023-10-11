@@ -16,7 +16,15 @@ bot.on("text", async (ctx) => {
       const result = await createPDF(url);
       ctx.replyWithDocument({ source: result.buffer, filename: result.title });
     } catch (error) {
-      ctx.reply("An error occurred while processing the URL. " + JSON.stringify(error));
+      if (error instanceof puppeteer.errors.TimeoutError) {
+        ctx.reply(
+          "There was a timeout error while processing the URL. This could be due to the page being too large or the server being slow. Please try again later."
+        );
+      } else {
+        ctx.reply(
+          "An error occurred while processing the URL. " + JSON.stringify(error)
+        );
+      }
     }
   } else {
     ctx.reply("Please send a valid URL.");
@@ -36,10 +44,10 @@ function isValidURL(string) {
 
 async function loadPage(page, url) {
   try {
-    await page.goto(url, { waitUntil: "networkidle2", timeout: 10000 });
+    await page.goto(url, { waitUntil: "networkidle2", timeout: 40000 });
   } catch (error) {
     if (error instanceof puppeteer.errors.TimeoutError) {
-      await page.goto(url, { waitUntil: "networkidle0", timeout: 100000 });
+      await page.goto(url, { waitUntil: "networkidle0", timeout: 500000 });
     } else {
       throw error;
     }
@@ -59,6 +67,20 @@ async function createPDF(url) {
 
     const page = await browser.newPage();
     console.log("New page opened.");
+
+await page.setRequestInterception(true);
+page.on("request", (request) => {
+  if (["video", "image"].includes(request.resourceType())) {
+    const fileExtension = new URL(request.url()).pathname.split(".").pop();
+    if (fileExtension === "gif" || request.resourceType() === "video") {
+      request.abort();
+    } else {
+      request.continue();
+    }
+  } else {
+    request.continue();
+  }
+});
 
     await page.setViewport({
       width: 1200,
@@ -91,15 +113,13 @@ async function createPDF(url) {
     return { buffer: pdfBuffer, title: filename };
   } catch (error) {
     console.error("Error in createPDF:", error);
-
-    // Close browser in case of an error to prevent lingering instances.
     if (browser) {
       console.log("Attempting to close browser due to error...");
       await browser.close();
       console.log("Browser closed.");
     }
 
-    throw error; // Re-throw the error so you can handle it upstream.
+    throw error; 
   }
 }
 
@@ -107,21 +127,26 @@ function sanitizeFilename(filename) {
   return filename.replace(/[^a-zA-Z0-9\u0400-\u04FF\-]/g, "_") + ".pdf";
 }
 
-async function autoScroll(page) {
-  await page.evaluate(async () => {
-    await new Promise((resolve, reject) => {
-      let totalHeight = 0;
-      const distance = 100;
-      const timer = setInterval(() => {
-        const scrollHeight = document.body.scrollHeight;
-        window.scrollBy(0, distance);
-        totalHeight += distance;
+async function autoScroll(page, maxScrolls = 15) {
+  return await page.evaluate(async (maxScrolls) => {
+    let scrollHeight = -1;
+    let attempts = 0;
 
-        if (totalHeight >= scrollHeight) {
-          clearInterval(timer);
-          resolve();
+    await new Promise((resolve, reject) => {
+      const timer = setInterval(() => {
+        window.scrollBy(0, 100);
+        const newScrollHeight = document.body.scrollHeight;
+
+        if (newScrollHeight === scrollHeight) {
+          attempts += 1;
+          if (attempts >= maxScrolls) {
+            clearInterval(timer);
+            resolve();
+          }
+        } else {
+          scrollHeight = newScrollHeight; 
         }
       }, 100);
     });
-  });
+  }, maxScrolls);
 }
