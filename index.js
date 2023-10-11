@@ -39,7 +39,7 @@ async function loadPage(page, url) {
     await page.goto(url, { waitUntil: "networkidle2", timeout: 10000 });
   } catch (error) {
     if (error instanceof puppeteer.errors.TimeoutError) {
-      await page.goto(url, { waitUntil: "networkidle0", timeout: 60000 });
+      await page.goto(url, { waitUntil: "networkidle0", timeout: 100000 });
     } else {
       throw error;
     }
