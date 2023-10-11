@@ -1,6 +1,12 @@
 const { Telegraf } = require("telegraf");
 const puppeteer = require("puppeteer");
 require("dotenv").config();
+const express = require("express");
+
+const app = express();
+
+const { job } = require("./cron.js")
+job.start()
 
 const botToken = process.env.BOT_TOKEN;
 const bot = new Telegraf(botToken);
@@ -32,6 +38,15 @@ bot.on("text", async (ctx) => {
 });
 
 bot.launch();
+
+app.get("/wake-up", (req, res) => {
+  res.send("Bot is awake!");
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
 
 function isValidURL(string) {
   try {
