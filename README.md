@@ -15,7 +15,7 @@ This bot listens to incoming messages for valid URLs. When a URL is provided, th
 
 ```bash
 
-git clone https://github.com/yourusername/telegram-pdf-bot.git
+git clone https://github.com/GottliebGlob/article-saver-bot.git
 
 cd telegram-pdf-bot
 
