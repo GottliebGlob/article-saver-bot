@@ -49,7 +49,7 @@ BOT_TOKEN=YOUR_TELEGRAM_BOT_TOKEN_HERE
     
 ```bash
     
-    `node index.js` 
+    `npm run start` 
     
    ```
 
