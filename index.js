@@ -85,9 +85,8 @@ async function createPDF(url) {
 
 await page.setRequestInterception(true);
 page.on("request", (request) => {
-  if (["video", "image"].includes(request.resourceType())) {
-    const fileExtension = new URL(request.url()).pathname.split(".").pop();
-    if (fileExtension === "gif" || request.resourceType() === "video") {
+  if (["video"].includes(request.resourceType())) {
+    if (request.resourceType() === "video") {
       request.abort();
     } else {
       request.continue();
@@ -98,8 +97,8 @@ page.on("request", (request) => {
 });
 
     await page.setViewport({
-      width: 1200,
-      height: 800,
+      width: 1680,
+      height: 1050,
     });
     console.log("Viewport set.");
 
@@ -115,7 +114,7 @@ page.on("request", (request) => {
     console.log("Auto-scroll completed.");
 
     console.log("Generating PDF...");
-    const pdfBuffer = await page.pdf({ format: "A4" });
+    const pdfBuffer = await page.pdf({ printBackground: true, format: "A4" });
     console.log("PDF generated.");
 
     console.log("Closing browser...");
@@ -142,7 +141,7 @@ function sanitizeFilename(filename) {
   return filename.replace(/[^a-zA-Z0-9\u0400-\u04FF\-]/g, "_") + ".pdf";
 }
 
-async function autoScroll(page, maxScrolls = 15) {
+async function autoScroll(page, maxScrolls = 20) {
   return await page.evaluate(async (maxScrolls) => {
     let scrollHeight = -1;
     let attempts = 0;
