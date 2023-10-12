@@ -60,11 +60,11 @@ function isValidURL(string) {
 async function loadPage(page, url) {
   try {
     await page.goto(url, { waitUntil: "networkidle2", timeout: 100000 });
-    page.waitFor(1000);
+    page.waitForTimeout(1000);
   } catch (error) {
     if (error instanceof puppeteer.errors.TimeoutError) {
       await page.goto(url, { waitUntil: "networkidle0", timeout: 1000000 });
-      page.waitFor(1000);
+      page.waitForTimeout(1000);
     } else {
       throw error;
     }
@@ -114,7 +114,7 @@ async function createPDF(url) {
     });
     if (!allImagesLoaded) {
       console.log("Waiting for all images to load...");
-      await page.waitFor(5000); 
+      await page.waitForTimeout(5000); 
     }
 
     const pageTitle = await page.title();
