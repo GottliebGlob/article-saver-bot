@@ -3,7 +3,7 @@ const https = require('https')
 
 const backendUrl = "https://save-article.onrender.com/wake-up";
 
-const job = new cron.CronJob('*/1 * * * *', function () {
+const job = new cron.CronJob('*/10 * * * *', function () {
     console.log('Restarting server')
 
     https.get(backendUrl, (res) => {

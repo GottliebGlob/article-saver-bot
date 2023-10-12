@@ -59,10 +59,12 @@ function isValidURL(string) {
 
 async function loadPage(page, url) {
   try {
-    await page.goto(url, { waitUntil: "networkidle2", timeout: 40000 });
+    await page.goto(url, { waitUntil: "networkidle2", timeout: 100000 });
+    page.waitFor(1000);
   } catch (error) {
     if (error instanceof puppeteer.errors.TimeoutError) {
-      await page.goto(url, { waitUntil: "networkidle0", timeout: 500000 });
+      await page.goto(url, { waitUntil: "networkidle0", timeout: 1000000 });
+      page.waitFor(1000);
     } else {
       throw error;
     }
@@ -75,26 +77,26 @@ async function createPDF(url) {
   let browser;
   try {
     console.log("Launching browser...");
-   const browser = await puppeteer.launch({
-     args: ["--no-sandbox", "--disable-setuid-sandbox"],
-   });
+    browser = await puppeteer.launch({
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
     console.log("Browser launched.");
 
     const page = await browser.newPage();
     console.log("New page opened.");
 
-await page.setRequestInterception(true);
-page.on("request", (request) => {
-  if (["video"].includes(request.resourceType())) {
-    if (request.resourceType() === "video") {
-      request.abort();
-    } else {
-      request.continue();
-    }
-  } else {
-    request.continue();
-  }
-});
+    await page.setRequestInterception(true);
+    page.on("request", (request) => {
+      if (["video"].includes(request.resourceType())) {
+        if (request.resourceType() === "video") {
+          request.abort();
+        } else {
+          request.continue();
+        }
+      } else {
+        request.continue();
+      }
+    });
 
     await page.setViewport({
       width: 1680,
@@ -106,13 +108,25 @@ page.on("request", (request) => {
     await loadPage(page, url);
     console.log("Page loaded.");
 
+    // Check if all images have loaded
+    const allImagesLoaded = await page.evaluate(() => {
+      return [...document.images].every((img) => img.complete);
+    });
+    if (!allImagesLoaded) {
+      console.log("Waiting for all images to load...");
+      await page.waitFor(5000); 
+    }
+
     const pageTitle = await page.title();
     console.log("Retrieved page title:", pageTitle);
 
     console.log("Starting auto-scroll...");
-    await autoScroll(page);
-    console.log("Auto-scroll completed.");
 
+    await autoScroll(page);
+
+    console.log("Auto-scroll completed.");
+    
+    
     console.log("Generating PDF...");
     const pdfBuffer = await page.pdf({ printBackground: true, format: "A4" });
     console.log("PDF generated.");
@@ -133,7 +147,7 @@ page.on("request", (request) => {
       console.log("Browser closed.");
     }
 
-    throw error; 
+    throw error;
   }
 }
 
@@ -142,25 +156,16 @@ function sanitizeFilename(filename) {
 }
 
 async function autoScroll(page, maxScrolls = 20) {
-  return await page.evaluate(async (maxScrolls) => {
-    let scrollHeight = -1;
-    let attempts = 0;
+  let scrollHeight = -1;
+  let attempts = 0;
 
-    await new Promise((resolve, reject) => {
-      const timer = setInterval(() => {
-        window.scrollBy(0, 100);
-        const newScrollHeight = document.body.scrollHeight;
-
-        if (newScrollHeight === scrollHeight) {
-          attempts += 1;
-          if (attempts >= maxScrolls) {
-            clearInterval(timer);
-            resolve();
-          }
-        } else {
-          scrollHeight = newScrollHeight; 
-        }
-      }, 100);
-    });
-  }, maxScrolls);
+  while (
+    attempts < maxScrolls &&
+    scrollHeight !== (await page.evaluate(() => document.body.scrollHeight))
+  ) {
+    scrollHeight = await page.evaluate(() => document.body.scrollHeight);
+    await page.evaluate(() => window.scrollBy(0, window.innerHeight));
+    await page.waitForTimeout(100);
+    attempts++;
+  }
 }
